@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road To Porsche</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="/Frontend/style.css"/>
+<link rel="shortcut icon" href="/image/5ec3e2b458550c000442773f.png" type="image/x-icon" />
+</head>
+<body>
+
+    <div class="chatbox-wrapper">
+        <div class="chatbox-toggle">
+            <i class='bx bx-support'></i>
+        </div>
+        <div class="chatbox-message-wrapper">
+            <div class="chatbox-message-header">
+                <div class="chatbox-message-profile">
+                    <img src="/image/5ec3e2b458550c000442773f.png" alt="Porsche-logo" class="chatbox-message-image">
+                    <div>
+                        <h4 class="chatbox-message-name">RTP</h4>
+                        <p class="chatbox-message-status">online</p>
+                    </div>
+                </div>
+                <div class="chatbox-message-dropdown">
+                    <i class='bx bx-dots-vertical-rounded chatbox-message-dropdown-toggle' ></i>
+                    <ul class="chatbox-message-dropdown-menu">
+                        <li>
+                            <a href="#">Search</a>
+                        </li>
+                        <li>
+                            <a href="#">Report</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="chatbox-message-content">
+                <h4 class="chatbox-message-no-message">Har du frågor kring Porsche? Fråga på!</h4>
+                <!-- <div class="chatbox-message-item sent">
+                    <span class="chatbox-message-item-text">
+                        Vad har Porsche 911 Turbo S för Storlek på motorn?
+                    </span>
+                    <span class="chatbox-message-item-time">08:30</span>
+                </div>
+                  <div class="chatbox-message-item recieved">
+                    <span class="chatbox-message-item-text">
+                        Vad har Porsche 911 Turbo S för Storlek på motorn?
+                    </span>
+                    <span class="chatbox-message-item-time">08:30</span>
+                </div> -->
+            </div>
+            <div class="chatbox-message-bottom">
+                <form id="chat-form" class="chatbox-message-form">
+                    <textarea id="chatbot_input" rows="1" placeholder="Type Message..." class="chatbox-message-input"></textarea>
+                    <button type="submit" class="chatbox-message-submit"><i class='bx bx-send' ></i></button>
+                </form>
+
+                <script>
+                    const submitanswer = document.getElementById("chat-form")
+                    const question = document.getElementById("chatbot_input")
+                    
+                    let isSending = false
+                    let sessionId= localStorage.getItem("chat_session_id");
+                    if (!sessionId) {
+                        sessionId = crypto.randomUUID();
+                        localStorage.setItem("chat_session_id", sessionId);
+                    }
+                    console.log("session", sessionId)
+
+                    question.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();                    // hindra radbrytning
+    if (isSending || question.value.trim() === "") return; // ignorera tomma
+    // Skicka formuläret
+    if (typeof submitanswer.requestSubmit === "function") {
+      submitanswer.requestSubmit();
+    } else {
+      submitanswer.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+  }
+});
+
+
+                    submitanswer.addEventListener("submit", async (e)=> {
+                        e.preventDefault();
+
+                        if (isSending || question.value.trim() ==="") return;
+
+                        const text = question.value.trim()
+
+                        isSending = true;
+                        question.disabled = true
+
+                          const chatboxMessageWrapper = document.querySelector(".chatbox-message-content");
+  const loading = document.createElement("div");
+  loading.classList.add("chatbox-message-item", "recieved");
+  loading.innerHTML = `
+    <div class="loading-indicator">
+      
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+    </div>
+  `;
+  chatboxMessageWrapper.appendChild(loading);
+
+                        
+                        const resp = await fetch("http://localhost:8000/api/User_input", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                                "input": question.value, 
+                                "session_id": sessionId,
+                            
+                            }),
+                            
+                        
+                            });
+                            const data = await resp.json();
+                            const svar = data?.svar;
+                            if (data && data.svar) {
+                            console.log("Botchat:", data);
+                            loading.remove(); // ta bort även vid fel
+                            Botchat(data.svar);
+                            }
+                            
+                            isSending = false;
+                            question.disabled = false;
+                            question.value ="";
+                            question.focus();
+                    });
+                           
+                        
+                    
+                    function Botchat(text) {
+                         const today = new Date();
+                         let message = `    <div class="chatbox-message-item recieved">
+                    <span class="chatbox-message-item-text">
+                        ${text}
+                    </span>
+                    <span class="chatbox-message-item-time">${addZero(
+                      today.getHours()
+                    )}:${addZero(today.getMinutes())}</span>
+                  </div>
+                `;
+                            chatboxMessageWrapper.insertAdjacentHTML("beforeend", message);
+                            scrollbottom();
+                                        }
+
+                        
+
+                        
+                    
+                </script>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+    
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <a href="index.html">
+                    <img src="/image/porsche-1-logo-png-transparent.png" alt="logo">
+                </a>
+            </div>
+
+            <div class="main-menu">
+                <ul>
+                    <li>
+                        <a href="index.html">Home</a>
+                    </li>
+                    <li>
+                        <a href="#">About Us</a>
+                    </li>
+                    <li>
+                        <a href="/Frontend/Flowchart.html">Chat Bot</a>
+                    </li>
+                    <li>
+                        <a class="btn btn-light" href="#">
+                            <i class="fas fa-user"></i>Log In
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-heading text-xxl">
+                    A powerful solution to affording a 911 Turbo S 
+                </h1>
+                <p class="hero-text"> Drive fast and look cool while doing it. Consider buying a Porsche today!
+                </p>
+                <div class="hero-buttons">
+                    <a href="#" class="btn btn-primary">Get started</a>
+                    <a href="#" class="btn"><i class="fas fa-laptop"></i>Book a Demo</a>
+                    
+                </div>
+            </div>
+        </div>
+    </section>
+    <!--Video-->
+    <section class="video bg-dark">
+        <div class="container-m">
+            <h2 class="video-heading text-xl text-center">
+                See how it works and get started in less than 2 minutes
+            </h2>
+            <div class="video-content">
+                <a href="#">
+                    <video src="/image/992 GT3RS & GT4RS Morning Drive  4K - Fastrmedia (1080p, h264).mp4" alt="gif" width="1500px"
+                    preload="metadata"
+                    loop
+                    muted
+                    playsinline
+                    autoplay
+                    
+                    
+                    class="video-preview">
+                </video>
+                </a>
+                
+                <a href="#" class="btn btn-primary">Get Started
+                </a>
+            </div>
+        </div>
+    </section>
+    <!-- Cars -->
+     <section class="carmodels bg-black">
+        <div class="container">
+            <h3 class="carmodels-heading text-xl">
+                Don't just take our word for it, read about the quality of Porsches below
+            </h3>
+            <div class="carmodels-grid">
+                <div class="card">
+                    <h1>Porsche 718 Cayman</h1>
+                    <a href="#">
+                        <img src="/image/cm23n3fox0001-718-cayman-style-edition-open-graph.png" alt="">
+                    </a>
+                    <p>
+                        Mid-engined precision, everyday usable. The Porsche 718 Cayman pairs a perfectly balanced chassis with turbo flat-four punch—or a soulful 4.0-liter flat-six in GTS/GT4 trims—delivering razor-sharp steering, rear-drive purity, and serious pace with either a 6-speed manual or PDK. Compact, purposeful, and thrilling from the first turn of the wheel.
+                    </p>
+                    <p>Porsche Cayman</p>
+                    <a href="https://dealer.porsche.com/se/goteborg/sv-SE/Porsche-718-Cayman">Learn More</a>
+                </div>
+                <div class="card">
+                    <h1>Porsche 911 Turbo S</h1>
+                    <a href="#">
+                        <img src="/image/4014.jpg" alt="Porsche 911 Turbo S">
+                    </a>
+                    <p>All-weather ferocity, everyday polish. The 911 Turbo S unleashes a twin-turbo flat-six, lightning-fast PDK, and active aerodynamics through all-wheel drive and rear-axle steering for explosive launches and laser-guided grip. Iconic shape, supercar pace, and the rare ability to be both missile and daily companion.</p>
+                    <p>Porsche 911</p>
+                    <a href="https://www.porsche.com/sweden/models/911/911-turbo-models/911-turbo-s/">Learn More</a>
+                </div>
+                <div class="card">
+                    <h1>Porsche Panamera</h1>
+                    <a href="#">
+                        <img src="/image/25_W24_8784.jpg" alt="Porsche Panamera">
+                    </a>
+                    <p>Gran turismo for real life. The Panamera blends four-door luxury with true Porsche pace—twin-turbo V6/V8 and E-Hybrid options, razor-sharp chassis tech, and rear-axle steering for uncanny poise. Lounge-quiet cabin, long-haul comfort, and the soul of a sports car.</p>
+                    <p>Porsche Panamera</p>
+                    <a href="https://www.porsche.com/sweden/models/panamera/panamera-models/panamera-4/">Learn More</a>
+                </div>
+            </div>
+        </div>
+     </section>
+
+     <!-- Pricing -->
+      <section class="pricing">
+        <div class="container-sm">
+            <h3 class="pricing-heading text-xl text-center">Pricing</h3>
+            <p class="pricing-subheading text-md text-center text-left">
+                Get started absolutely for free! No hidden fees. Explore the endless facts and engineering marvels of Porsches for free!*
+                <p class="pricing-subheading text-sm text-center text-left">*Only free between 09:00-17:00 on weekdays</p>
+            </p>
+            <div class="pricing-grid">
+                <!--Pricing card 1 -->
+                <div class="card bg-light">
+                    <div class="pricing-card-header">
+                        <h4 class="pricing-heading text-xl">
+                            Simple
+                        </h4>
+                        <p class="pricing-card-subheading">
+                            Keep track of your contacts, gain valuable insights, analyse live data and performance metrics.
+                        </p>
+                        <p class="pricing-card-price">
+                            <span class="text-xl">Free</span>
+                            *No credit card needed
+                        </p>
+                    </div>
+                    <div class="pricing-card-body">
+                        <ul>
+                            <li>
+                                <i class="fas fa-check"></i> Real-Time Monitoring
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>Track key performance indicators
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>Schedule appointments
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>Organize, delegate and keep track of tasks
+                            </li>
+                        </ul>
+                        <a href="#" class="btn btn-primary btn-block">Get Started</a>
+                    </div>
+                </div>
+                <div class="card bg-black">
+                    <div class="pricing-card-header">
+                        <h4 class="pricing-heading text-xl">
+                            Premium
+                        </h4>
+                        <p class="pricing-card-subheading">
+                            Keep track of your contacts, gain valuable insights, analyze live data and performance metrics
+                        </p>
+                        <p class="pricing-card-price">
+                            <span class="text-xl">$ 49.99</span>
+                        </p>
+                        <div class="pricing-card-body">
+                            <ul>
+                                <li>
+                                    <i class="fas fa-check"></i>Data-driven decisions
+                
+                                </li>
+                                <li>
+                                    <i class="fas fa-check"></i>Data visualisation
+                                </li>
+                                <li>
+                                    <i class="fas fa-check"></i>Schedule appointments
+                
+                                </li>
+                                <li>
+                                    <i class="fas fa-check"></i>Store and organise contact information
+                                </li>
+                                <li>
+                                    <i class="fas fa-check"></i>Real-time communication tools for messaging and video conferencing
+                                </li>
+                            </ul>
+                            <a href="#" class="btn btn-primary btn-block">Get Started</a>
+                        </div>
+                        
+                        
+                        
+                    </div>
+                    
+                
+                </div>
+            </div>
+                <p class="pricing-footer text-center">
+                    All prices are in Euros and charged per month with applicable taxes added at checkout.
+                </p>
+        </div>
+      </section>
+      <section class="faq bg-light">
+        <div class="container-m">
+            <h3 class="text-xl text-center">Testa din Porschekunskap nedan!</h3>
+               
+                <div class="faq-content">
+                    <div class="faq-group">
+                         <div class="faq-group-header">
+                            <h4 class="text-md">
+                                Vilken var den första serieproducerade modellen från Porsche?
+                            </h4>
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="faq-group-body text-sm">
+                            Det är Porsche 356, introducerad 1948 och byggd fram till 1965.
+                        </div>
+                    </div>
+
+                    <div class="faq-group">
+                        <div class="faq-group-header">
+                            <h4 class="text-md">
+                                Vilken Porsche-modell introducerade fyrhjulsdrift i 911-serien?
+                            </h4>
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="faq-group-body text-sm">
+                            Porsche 911 Carrera 4 (964), lanserad 1989 som första fyrhjulsdrivna 911.
+                        </div>
+                    </div>
+
+                    <div class="faq-group">
+                        <div class="faq-group-header">
+                            <h4 class="text-md">
+                                Vad står siffrorna “718” för i Porsche 718 Boxster/Cayman?
+                            </h4>
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="faq-group-body text-sm">
+                            De syftar på den klassiska Porsche 718, en lätt racemodell från slutet av 1950-talet som vann flera tävlingar.
+                        </div>
+                    </div>
+
+                    <div class="faq-group">
+                        <div class="faq-group-header">
+                            <h4 class="text-md">
+                                Vilken Porsche var den första med en V8-motor?
+                            </h4>
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="faq-group-body text-sm">
+                            Porsche 928, lanserad 1977, designad som en lyxig GT med en frammonterad V8.
+                        </div>
+                    </div>
+
+                    <div class="faq-group">
+                        <div class="faq-group-header">
+                            <h4 class="text-md">
+                                Vilken modell satte Nürburgring-rekordet 2018 med tiden 5:19,3?
+                            </h4>
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="faq-group-body text-sm">
+                            Porsche 919 Hybrid Evo satte världsrekordet 29 juni 2018, och är fortfarande den snabbaste bilen som någonsin körts på banan
+                        </div>
+                    </div>
+                </div>
+            
+        </div>
+      </section>
+    
+
+
+
+
+
+    
+
+
+
+    <script src="/Frontend/main.js"></script>
+    
+
+</body>
+</html>
